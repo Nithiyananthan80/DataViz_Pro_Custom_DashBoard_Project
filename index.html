@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DataViz Pro — Custom Dashboard Builder</title>
+
+  <!-- External CSS -->
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Chart.js (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── TOP BAR ────────────────────────────────────────── -->
+  <div class="topbar">
+    <div class="logo">
+      <span class="logo-dot"></span>DataViz Pro
+    </div>
+    <div class="topbar-nav">
+      <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+      <button class="tab-btn"        data-tab="orders"    onclick="switchTab('orders')">Customer Orders</button>
+    </div>
+    <div style="width:120px;display:flex;justify-content:flex-end">
+      <button class="btn btn-primary btn-sm" id="configure-btn" onclick="switchTab('config')">⚙ Configure</button>
+    </div>
+  </div>
+
+  <!-- ── BREADCRUMB ─────────────────────────────────────── -->
+  <div id="page-breadcrumb" style="background:var(--bg2);border-bottom:1px solid var(--border);padding:.45rem 1.5rem;display:flex;align-items:center;gap:.5rem;font-size:.75rem;color:var(--text3)">
+    <span style="color:var(--text3)">DataViz Pro</span>
+    <span style="color:var(--border2)">›</span>
+    <span id="breadcrumb-label" style="color:var(--accent);font-weight:500">Dashboard</span>
+  </div>
+
+  <div class="main">
+
+    <!-- ── DASHBOARD PAGE ──────────────────────────────── -->
+    <div id="page-dashboard" class="active">
+      <div class="section-header">
+        <div>
+          <div class="section-title">My Dashboard</div>
+          <div class="section-sub">Personalized analytics overview</div>
+        </div>
+      </div>
+
+      <div class="date-filter-bar">
+        <label>Show data for</label>
+        <div class="filter-pills">
+          <button class="filter-pill active" onclick="setDateFilter('all',this)">All time</button>
+          <button class="filter-pill"        onclick="setDateFilter('today',this)">Today</button>
+          <button class="filter-pill"        onclick="setDateFilter('7',this)">Last 7 Days</button>
+          <button class="filter-pill"        onclick="setDateFilter('30',this)">Last 30 Days</button>
+          <button class="filter-pill"        onclick="setDateFilter('90',this)">Last 90 Days</button>
+        </div>
+      </div>
+
+      <div id="dashboard-empty" class="empty-state">
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+          <rect x="8"  y="8"  width="22" height="22" rx="4" stroke="#94a3b8" stroke-width="2"/>
+          <rect x="34" y="8"  width="22" height="22" rx="4" stroke="#94a3b8" stroke-width="2"/>
+          <rect x="8"  y="34" width="22" height="22" rx="4" stroke="#94a3b8" stroke-width="2"/>
+          <rect x="34" y="34" width="22" height="22" rx="4" stroke="#94a3b8" stroke-width="2"/>
+        </svg>
+        <h3>No widgets configured</h3>
+        <p>Click Configure Dashboard to create your personalized analytics view.</p>
+        <button class="btn btn-primary" onclick="switchTab('config')">⚙ Configure Dashboard</button>
+      </div>
+
+      <div id="dashboard-grid" class="dashboard-grid" style="display:none"></div>
+    </div>
+
+    <!-- ── CUSTOMER ORDERS PAGE ────────────────────────── -->
+    <div id="page-orders">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Customer Orders</div>
+          <div class="section-sub">Manage all customer orders</div>
+        </div>
+        <button class="btn btn-primary" onclick="openOrderModal()">+ Create Order</button>
+      </div>
+
+      <div class="data-table-wrap">
+        <table class="data-table" id="orders-table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Customer</th>
+              <th>Email</th>
+              <th>Product</th>
+              <th>Qty</th>
+              <th>Unit Price</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Created By</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="orders-tbody"></tbody>
+        </table>
+      </div>
+
+      <div id="orders-empty" class="empty-state" style="display:none">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <rect x="8" y="6" width="32" height="36" rx="3" stroke="#94a3b8" stroke-width="2"/>
+          <line x1="16" y1="16" x2="32" y2="16" stroke="#94a3b8" stroke-width="2"/>
+          <line x1="16" y1="22" x2="32" y2="22" stroke="#94a3b8" stroke-width="2"/>
+          <line x1="16" y1="28" x2="24"  y2="28" stroke="#94a3b8" stroke-width="2"/>
+        </svg>
+        <h3>No orders yet</h3>
+        <p>Click Create Order to add your first customer order.</p>
+      </div>
+    </div>
+
+    <!-- ── CONFIGURE PAGE ──────────────────────────────── -->
+    <div id="page-config">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Dashboard Configuration</div>
+          <div class="section-sub">Drag widgets from the palette to the canvas</div>
+        </div>
+        <div style="display:flex;gap:.75rem">
+          <button class="btn btn-secondary" onclick="switchTab('dashboard')">← Back</button>
+          <button class="btn btn-primary"   onclick="saveDashboard()">💾 Save Configuration</button>
+        </div>
+      </div>
+
+      <div class="config-layout">
+
+        <!-- Widget Palette -->
+        <div class="widget-palette">
+          <div class="palette-title">Widget Library</div>
+
+          <div class="palette-group">
+            <div class="palette-group-name">Charts</div>
+            <div class="palette-item" draggable="true" data-type="bar">
+              <div class="palette-icon">
+                <svg width="18" height="18" viewBox="0 0 18 18">
+                  <rect x="1" y="10" width="3" height="7" fill="currentColor"/>
+                  <rect x="7" y="5"  width="3" height="12" fill="currentColor"/>
+                  <rect x="13" y="2" width="3" height="15" fill="currentColor"/>
+                </svg>
+              </div>Bar Chart
+            </div>
+            <div class="palette-item" draggable="true" data-type="line">
+              <div class="palette-icon">
+                <svg width="18" height="18" viewBox="0 0 18 18">
+                  <polyline points="1,14 5,8 9,11 13,4 17,7" fill="none" stroke="currentColor" stroke-width="2"/>
+                </svg>
+              </div>Line Chart
+            </div>
+            <div class="palette-item" draggable="true" data-type="pie">
+              <div class="palette-icon">
+                <svg width="18" height="18" viewBox="0 0 18 18">
+                  <circle cx="9" cy="9" r="8" fill="none" stroke="currentColor" stroke-width="2"/>
+                  <path d="M9 9L9 1A8 8 0 0 1 17 9Z" fill="currentColor"/>
+                </svg>
+              </div>Pie Chart
+            </div>
+            <div class="palette-item" draggable="true" data-type="area">
+              <div class="palette-icon">
+                <svg width="18" height="18" viewBox="0 0 18 18">
+                  <polyline points="1,14 5,8 9,11 13,4 17,7 17,16 1,16" fill="currentColor" opacity=".4" stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+              </div>Area Chart
+            </div>
+            <div class="palette-item" draggable="true" data-type="scatter">
+              <div class="palette-icon">
+                <svg width="18" height="18" viewBox="0 0 18 18">
+                  <circle cx="4"  cy="13" r="2" fill="currentColor"/>
+                  <circle cx="10" cy="7"  r="2" fill="currentColor"/>
+                  <circle cx="15" cy="4"  r="2" fill="currentColor"/>
+                  <circle cx="7"  cy="11" r="2" fill="currentColor"/>
+                </svg>
+              </div>Scatter Plot
+            </div>
+          </div>
+
+          <div class="palette-group">
+            <div class="palette-group-name">Tables</div>
+            <div class="palette-item" draggable="true" data-type="table">
+              <div class="palette-icon">
+                <svg width="18" height="18" viewBox="0 0 18 18">
+                  <rect x="1" y="1" width="16" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                  <line x1="1"  y1="6"  x2="17" y2="6"  stroke="currentColor" stroke-width="1.5"/>
+                  <line x1="7"  y1="6"  x2="7"  y2="17" stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+              </div>Table
+            </div>
+          </div>
+
+          <div class="palette-group">
+            <div class="palette-group-name">KPIs</div>
+            <div class="palette-item" draggable="true" data-type="kpi">
+              <div class="palette-icon">
+                <svg width="18" height="18" viewBox="0 0 18 18">
+                  <text x="1" y="14" font-size="13" fill="currentColor" font-weight="bold">KPI</text>
+                </svg>
+              </div>KPI Value
+            </div>
+          </div>
+
+          <div style="margin-top:1.5rem;padding:.75rem;background:var(--bg3);border-radius:var(--radius-sm);font-size:.75rem;color:var(--text3);line-height:1.6">
+            <div style="font-weight:600;color:var(--text2);margin-bottom:.3rem">How to use</div>
+            Drag any widget to the canvas. Hover a placed widget to configure or remove it.
+          </div>
+        </div>
+
+        <!-- Canvas Area -->
+        <div class="canvas-area">
+          <div class="canvas-toolbar">
+            <span style="font-size:.82rem;color:var(--text2)">Canvas Grid · 12 columns</span>
+            <button class="btn btn-secondary btn-sm" onclick="clearCanvas()">Clear All</button>
+          </div>
+          <div class="canvas-grid" id="canvas-drop-zone"
+               ondragover="onCanvasDragOver(event)"
+               ondrop="onCanvasDrop(event)"
+               ondragleave="onCanvasDragLeave(event)">
+            <div id="canvas-placeholder" class="canvas-placeholder">
+              <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                <rect x="4"  y="4"  width="15" height="15" rx="2" stroke="#64748b" stroke-width="2"/>
+                <rect x="21" y="4"  width="15" height="15" rx="2" stroke="#64748b" stroke-width="2"/>
+                <rect x="4"  y="21" width="15" height="15" rx="2" stroke="#64748b" stroke-width="2"/>
+                <rect x="21" y="21" width="15" height="15" rx="2" stroke="#64748b" stroke-width="2"/>
+              </svg>
+              <span>Drag widgets here to build your dashboard</span>
+            </div>
+            <div class="canvas-grid-inner" id="canvas-widgets"></div>
+          </div>
+        </div>
+
+      </div><!-- /config-layout -->
+    </div><!-- /page-config -->
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ── ORDER MODAL ──────────────────────────────────────────── -->
+<div class="modal-overlay" id="order-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="order-modal-title">Create Order</div>
+      <button class="close-btn" onclick="closeOrderModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="form-section">
+        <div class="form-section-title">Customer Information</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">First Name <span class="required">*</span></label>
+            <input class="form-input" id="f-firstname" placeholder="John">
+            <div class="form-error" id="e-firstname">Please fill the field</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Last Name <span class="required">*</span></label>
+            <input class="form-input" id="f-lastname" placeholder="Doe">
+            <div class="form-error" id="e-lastname">Please fill the field</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Email ID <span class="required">*</span></label>
+            <input class="form-input" id="f-email" type="email" placeholder="john@example.com">
+            <div class="form-error" id="e-email">Please fill the field</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone Number <span class="required">*</span></label>
+            <input class="form-input" id="f-phone" placeholder="+1 234 567 8900">
+            <div class="form-error" id="e-phone">Please fill the field</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Street Address <span class="required">*</span></label>
+          <input class="form-input" id="f-street" placeholder="123 Main Street">
+          <div class="form-error" id="e-street">Please fill the field</div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">City <span class="required">*</span></label>
+            <input class="form-input" id="f-city" placeholder="New York">
+            <div class="form-error" id="e-city">Please fill the field</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">State / Province <span class="required">*</span></label>
+            <input class="form-input" id="f-state" placeholder="NY">
+            <div class="form-error" id="e-state">Please fill the field</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Postal Code <span class="required">*</span></label>
+            <input class="form-input" id="f-postal" placeholder="10001">
+            <div class="form-error" id="e-postal">Please fill the field</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Country <span class="required">*</span></label>
+            <select class="form-select" id="f-country">
+              <option value="">Select Country</option>
+              <option>US</option>
+              <option>Canada</option>
+              <option>Australia</option>
+              <option>Singapore</option>
+              <option>Hong Kong</option>
+              <option>India</option>
+              <option>United Kingdom</option>
+              <option>Germany</option>
+              <option>France</option>
+              <option>Japan</option>
+              <option>UAE</option>
+              <option>Brazil</option>
+              <option>South Africa</option>
+              <option>Malaysia</option>
+              <option>New Zealand</option>
+            </select>
+            <div class="form-error" id="e-country">Please fill the field</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Order Information</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Choose Product <span class="required">*</span></label>
+            <select class="form-select" id="f-product" onchange="calcTotal()">
+              <option value="">Select Product</option>
+              <option>Fiber 300 Mbps</option>
+              <option>SGUnlimited Mobile</option>
+              <option>Fiber 1 Gbps</option>
+              <option>Business 500 Mbps</option>
+              <option>VoIP Corp</option>
+            </select>
+            <div class="form-error" id="e-product">Please fill the field</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Quantity <span class="required">*</span></label>
+            <input class="form-input" id="f-qty" type="number" value="1" min="1" oninput="calcTotal()">
+            <div class="form-error" id="e-qty">Please fill the field</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Unit Price <span class="required">*</span></label>
+            <input class="form-input" id="f-unitprice" type="number" placeholder="0.00" oninput="calcTotal()">
+            <div class="form-error" id="e-unitprice">Please fill the field</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Total Amount</label>
+            <input class="form-input" id="f-total" readonly placeholder="$0.00"
+                   style="background:var(--bg4);color:var(--accent)">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Status <span class="required">*</span></label>
+            <select class="form-select" id="f-status">
+              <option value="Pending" selected>Pending</option>
+              <option value="In progress">In progress</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Created By <span class="required">*</span></label>
+            <select class="form-select" id="f-createdby">
+              <option value="">Select</option>
+              <option>Mr. Michael Harris</option>
+              <option>Mr. Ryan Cooper</option>
+              <option>Ms. Olivia Carter</option>
+              <option>Mr. Lucas Martin</option>
+            </select>
+            <div class="form-error" id="e-createdby">Please fill the field</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeOrderModal()">Cancel</button>
+      <button class="btn btn-primary"   onclick="submitOrder()">Submit Order</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── WIDGET CONFIG SIDE PANEL ─────────────────────────────── -->
+<div class="side-panel" id="widget-panel">
+  <div class="side-panel-header">
+    <div class="side-panel-title" id="panel-title">Configure Widget</div>
+    <button class="close-btn" onclick="closePanel()">✕</button>
+  </div>
+  <div class="side-panel-body" id="panel-body"></div>
+  <div style="padding:1rem 1.25rem;border-top:1px solid var(--border)">
+    <button class="btn btn-primary" style="width:100%" onclick="applyWidgetConfig()">Apply Changes</button>
+  </div>
+</div>
+
+<!-- ── CONFIRM DIALOG ───────────────────────────────────────── -->
+<div class="confirm-dialog" id="confirm-dialog">
+  <div class="confirm-box">
+    <h4 id="confirm-title">Confirm Action</h4>
+    <p  id="confirm-msg">Are you sure you want to proceed?</p>
+    <div class="confirm-actions">
+      <button class="btn btn-secondary btn-sm" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-danger btn-sm"    id="confirm-ok">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST CONTAINER ──────────────────────────────────────── -->
+<div class="toast-container" id="toasts"></div>
+
+<!-- App JS (must be after DOM) -->
+<script src="app.js"></script>
+</body>
+</html>
