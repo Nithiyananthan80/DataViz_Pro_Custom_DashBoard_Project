@@ -12,6 +12,7 @@ real-time KPI cards, interactive charts, and full customer order management.
 ![Chart.js](https://img.shields.io/badge/Chart.js-FF6384?style=flat&logo=chartdotjs&logoColor=white)
 ![React](https://img.shields.io/badge/React-61DAFB?style=flat&logo=react&logoColor=black)
 
+[▶ Watch Demo on YouTube](https://youtu.be/gN2dJB3nUnA)
 </div>
 
 ---
